@@ -93,6 +93,14 @@ int main() {
           vector<double> next_x_vals;
           vector<double> next_y_vals;
 
+          // lane recoginition left:1, center:2, right:3
+          int lane = 1;
+          if ( car_d >= 4 && car_d < 8) {
+            lane = 2;
+          } else if (car_d >= 8 && car_d <12) {
+            lane = 3;
+          }
+
           /**
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
