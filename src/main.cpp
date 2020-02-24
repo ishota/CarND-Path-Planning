@@ -84,6 +84,16 @@ int main() {
           double end_path_s = j[1]["end_path_s"];
           double end_path_d = j[1]["end_path_d"];
 
+          // Recognize lane. left:1, center:2, right:3. (invalid:0)
+          int car_lane = INVALID_LANE;
+          if ( car_d >= 0 && car_d < 4) {
+            car_lane = LEFT_LANE;
+          } else if ( car_d >= 4 && car_d < 8) {
+            car_lane = MIDDLE_LANE;
+          } else if (car_d >= 8 && car_d <12) {
+            car_lane = RIGHT_LANE;
+          }
+
           // Sensor Fusion Data, a list of all other cars on the same side 
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
@@ -93,13 +103,6 @@ int main() {
           vector<double> next_x_vals;
           vector<double> next_y_vals;
 
-          // lane recoginition left:1, center:2, right:3
-          int lane = 1;
-          if ( car_d >= 4 && car_d < 8) {
-            lane = 2;
-          } else if (car_d >= 8 && car_d <12) {
-            lane = 3;
-          }
 
           /**
            * TODO: define a path made up of (x,y) points that the car will visit
