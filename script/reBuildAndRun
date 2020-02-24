@@ -1,0 +1,6 @@
+cd build
+cmake ..
+make
+cp ../script/makeAndResume ./
+./path_planning
+cd ../
