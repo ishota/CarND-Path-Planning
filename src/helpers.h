@@ -10,14 +10,19 @@ using std::string;
 using std::vector;
 
 // Constant values
-const int INVALID_LANE = 0;
-const int LEFT_LANE = 1;
-const int MIDDLE_LANE = 2;
-const int RIGHT_LANE = 3;
-const double MAX_VEL = 49.9;
+const double MAX_VEL = 49.5;
 const double MAX_ACC = .224;
 const double MAX_DEC = .448;
+const int LEFT_LANE = 0;
+const int MIDDLE_LANE = 1;
+const int RIGHT_LANE = 2;
+const int INVALID_LANE = -1;
 
+const int LEFT_LANE_MAX = 4;
+const int MIDDLE_LANE_MAX = 8;
+const int RIGHT_LANE_MAX = 12;
+
+const int PROJECTION_IN_METERS = 30;
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 //   else the empty string "" will be returned.
