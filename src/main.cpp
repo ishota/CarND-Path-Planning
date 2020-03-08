@@ -332,6 +332,11 @@ int main() {
                 if ( ref_vel < 0 ) {
                   ref_vel = MAX_ACC;
                 }
+              } else if ( target_distance < 12 ) {
+                ref_vel -= (MAX_ACC / 2);
+                if ( ref_vel < 0 ) {
+                  ref_vel = MAX_ACC;
+                }
               } else if ( target_speed - ref_vel > -20 && ref_vel + MAX_ACC < MAX_VEL) {
                 ref_vel += MAX_ACC;
               } else if ( target_speed - ref_vel < -20 && ref_vel - MAX_ACC > MAX_ACC) {
