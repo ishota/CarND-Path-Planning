@@ -185,14 +185,20 @@ int main() {
               }
             } else if ( other_car_lane - lane == -1 ) {
               // Other car is on the left lane
-              car_left |= car_s - judgement_distance < check_car_s && car_s + judgement_distance > check_car_s;
+              car_left |= car_s - judgement_distance * 0.5 < check_car_s && car_s + judgement_distance * 1.5 > check_car_s;
             } else if ( other_car_lane - lane == 1 ) {
               // Other car is on the right lane
-              car_right |= car_s - judgement_distance < check_car_s && car_s + judgement_distance > check_car_s;
+              car_right |= car_s - judgement_distance * 0.5 < check_car_s && car_s + judgement_distance * 1.5 > check_car_s;
             }
           }
 
           // 2. BEHAVIOR: Trigger State Changes Depending If Road Clear of Vehicle Ahead
+          // Wait for completing Lane Change
+          if ( (2.2 < car_d && car_d < 5.8) || (6.2 < car_d && car_d < 9.8) ) {
+            car_left = true;
+            car_right = true;
+          }
+
           if (car_ahead) {
             // Execute 'CarAhead' trigger on state machine
             fsm.execute(Triggers::CarAhead);
