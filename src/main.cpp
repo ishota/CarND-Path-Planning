@@ -127,6 +127,10 @@ int main() {
           double end_path_s = j[1]["end_path_s"];
           double end_path_d = j[1]["end_path_d"];
 
+          // Following car's speed
+          double target_speed = MAX_VEL;
+          double target_distance = 100;
+
           // Sensor Fusion Data, a list of all other cars on the same side 
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
@@ -169,15 +173,22 @@ int main() {
             // Estimate the other car's position after executing previous trajectory
             check_car_s += (double) prev_size * 0.02 * check_speed;
 
+            double judgement_distance = PROJECTION_IN_METERS;
             if ( other_car_lane == lane ) {
               // Other car is in the same lane
-              car_ahead |= check_car_s > car_s && check_car_s - car_s < PROJECTION_IN_METERS;
+              car_ahead |= check_car_s > car_s && check_car_s - car_s < judgement_distance * 1.5;
+              if ( check_car_s > car_s && check_car_s - car_s < judgement_distance) {
+                if ( target_distance > check_car_s - car_s ) {
+                  target_distance = check_car_s - car_s;
+                  target_speed = check_speed;
+                }
+              }
             } else if ( other_car_lane - lane == -1 ) {
               // Other car is on the left lane
-              car_left |= car_s - PROJECTION_IN_METERS < check_car_s && car_s + PROJECTION_IN_METERS > check_car_s;
+              car_left |= car_s - judgement_distance < check_car_s && car_s + judgement_distance > check_car_s;
             } else if ( other_car_lane - lane == 1 ) {
               // Other car is on the right lane
-              car_right |= car_s - PROJECTION_IN_METERS < check_car_s && car_s + PROJECTION_IN_METERS > check_car_s;
+              car_right |= car_s - judgement_distance < check_car_s && car_s + judgement_distance > check_car_s;
             }
           }
 
@@ -234,7 +245,7 @@ int main() {
           }
 
           // In Frenet add evenly 30m spaced points ahead of the starting reference
-          vector<double> next_wp0 = getXY(car_s+PROJECTION_IN_METERS, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+          vector<double> next_wp0 = getXY(car_s+PROJECTION_IN_METERS,     (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
           vector<double> next_wp1 = getXY(car_s+(PROJECTION_IN_METERS*2), (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
           vector<double> next_wp2 = getXY(car_s+(PROJECTION_IN_METERS*3), (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
@@ -306,6 +317,22 @@ int main() {
 
             next_x_vals.push_back(x_point);
             next_y_vals.push_back(y_point);
+
+            //Accelerate to reache MAX_VEL in Normal state
+            if ( fsm.state() == Normal ){
+              if ( ref_vel + MAX_ACC < MAX_VEL ){
+                ref_vel += MAX_ACC;
+              }
+            }
+
+            //Follow 
+            if ( fsm.state() == Follow ){
+              if ( target_speed - ref_vel > -20 && ref_vel + MAX_ACC < MAX_VEL) {
+                ref_vel += MAX_ACC;
+              } else if ( target_speed - ref_vel < -20 && ref_vel - MAX_ACC > MAX_ACC) {
+                ref_vel -= ((target_speed - ref_vel) * 0.2 / (target_distance + PROJECTION_IN_METERS * 2));
+              }
+            }
           }
 
           msgJson["next_x"] = next_x_vals;
