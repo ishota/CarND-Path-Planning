@@ -327,7 +327,12 @@ int main() {
 
             //Follow 
             if ( fsm.state() == Follow ){
-              if ( target_speed - ref_vel > -20 && ref_vel + MAX_ACC < MAX_VEL) {
+              if ( target_distance < 7 ) {
+                ref_vel -= MAX_ACC;
+                if ( ref_vel < 0 ) {
+                  ref_vel = MAX_ACC;
+                }
+              } else if ( target_speed - ref_vel > -20 && ref_vel + MAX_ACC < MAX_VEL) {
                 ref_vel += MAX_ACC;
               } else if ( target_speed - ref_vel < -20 && ref_vel - MAX_ACC > MAX_ACC) {
                 ref_vel -= ((target_speed - ref_vel) * 0.2 / (target_distance + PROJECTION_IN_METERS * 2));
