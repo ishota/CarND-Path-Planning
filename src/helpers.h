@@ -11,7 +11,7 @@ using std::vector;
 
 // Constant values
 const double MAX_VEL = 49.5;
-const double MAX_ACC = .224;
+const double MAX_ACC = .200;
 const double MAX_DEC = .448;
 const int LEFT_LANE = 0;
 const int MIDDLE_LANE = 1;

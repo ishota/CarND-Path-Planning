@@ -194,7 +194,7 @@ int main() {
 
           // 2. BEHAVIOR: Trigger State Changes Depending If Road Clear of Vehicle Ahead
           // Wait for completing Lane Change
-          if ( (2.2 < car_d && car_d < 5.8) || (6.2 < car_d && car_d < 9.8) ) {
+          if ( (2.5 < car_d && car_d < 5.5) || (6.5 < car_d && car_d < 9.5) ) {
             car_left = true;
             car_right = true;
           }
@@ -333,13 +333,18 @@ int main() {
 
             //Follow 
             if ( fsm.state() == Follow ){
-              if ( target_distance < 7 ) {
+              if ( target_distance < 7) {
                 ref_vel -= MAX_ACC;
-                if ( ref_vel < 0 ) {
-                  ref_vel = MAX_ACC;
+                if ( ref_vel < 0) {
+                  ref_vel = 0;
                 }
               } else if ( target_distance < 12 ) {
                 ref_vel -= (MAX_ACC / 2);
+                if ( ref_vel < 0 ) {
+                  ref_vel = MAX_ACC;
+                }
+              } else if ( target_distance < 20 ) {
+                ref_vel -= (MAX_ACC / 3);
                 if ( ref_vel < 0 ) {
                   ref_vel = MAX_ACC;
                 }
