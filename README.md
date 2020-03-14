@@ -106,18 +106,50 @@ cmake and make!
 
 ## Model Documentation
 
+I controlled the self-driving car with prediction, behavior planning and trajectory calculation procedures.
+
 ### Prediction
+
+Using the result of sensor fution, we observed the position of other car as seen from the ego car.
+Using this result, it is predicted whether the car is driving on the same lane, the right lane, or the left lane.
 
 ### Behavior Planning
 
 I used finite state machine.
+The state consists of four.
 
-1. normal
-2. following
-3. change right lane
-4. change left lane
+1. Normal : Accelerates to maximum speed when there is no car around.
+2. Follow : Control the speed acoording to the car ahead.
+3. ChangeRigth : Change right lane.
+4. ChangeLeft : Change left lane.
+
+State transition conditions and actions after transition are defined as follows. [1]
+
+```cpp
+  fsm.add_transitions({
+    //  from state        ,to state            ,triggers           ,guard                                                      ,action
+    { States::Normal      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
+    { States::ChangeLeft  ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+    { States::ChangeLeft  ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{ ref_vel -= MAX_DEC; } },
+    { States::Follow      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
+
+    { States::Normal      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
+    { States::ChangeRight ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+    { States::ChangeRight ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{ ref_vel -= MAX_DEC; } },
+    { States::Follow      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
+
+    { States::Normal      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{ref_vel -= MAX_DEC;} },
+    { States::Follow      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{ref_vel -= MAX_DEC;} },
+    { States::Follow      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{ref_vel += MAX_ACC;} },
+    { States::Normal      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{ if (ref_vel < MAX_VEL) { ref_vel += MAX_ACC; }} },
+
+  }); // end fsm.add_transitions
+```
 
 ### Trajectory Calculation
+
+Calculate the spline curve from the car position and map reference points.
+Then, the speed at each point is calculated to satisfy all constraints.
 
 ## result
 
@@ -128,5 +160,7 @@ I used finite state machine.
 ![alt text][fantastic]
 
 
-reference here 
-https://github.com/mkoehnke/CarND-Path-Planning-Project
+## reference
+
+I refered finite state machine implements.  
+[1] https://github.com/mkoehnke/CarND-Path-Planning-Project
