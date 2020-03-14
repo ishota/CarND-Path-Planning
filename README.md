@@ -112,6 +112,11 @@ cmake and make!
 
 I used finite state machine.
 
+1. normal
+2. following
+3. change right lane
+4. change left lane
+
 ### Trajectory Calculation
 
 ## result
