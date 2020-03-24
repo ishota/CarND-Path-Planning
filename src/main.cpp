@@ -73,22 +73,24 @@ int main() {
   bool car_right = false;
 
   // State Machine Setup
+  // ************** fixed here **************
   fsm.add_transitions({
     //  from state        ,to state            ,triggers           ,guard                                                      ,action
     { States::Normal      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
     { States::ChangeLeft  ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
-    { States::ChangeLeft  ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{ ref_vel -= MAX_DEC; } },
+    { States::ChangeLeft  ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{} },
     { States::Follow      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
 
     { States::Normal      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
     { States::ChangeRight ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
-    { States::ChangeRight ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{ ref_vel -= MAX_DEC; } },
+    { States::ChangeRight ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{} },
     { States::Follow      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
 
-    { States::Normal      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{ref_vel -= MAX_DEC;} },
-    { States::Follow      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{ref_vel -= MAX_DEC;} },
-    { States::Follow      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{ref_vel += MAX_ACC;} },
-    { States::Normal      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{ if (ref_vel < MAX_VEL) { ref_vel += MAX_ACC; }} },
+    { States::Normal      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{} },
+    { States::Follow      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{} },
+    { States::Follow      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+    { States::Normal      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+    // ************** ********** **************
 
   }); // end fsm.add_transitions
 
@@ -173,31 +175,42 @@ int main() {
             // Estimate the other car's position after executing previous trajectory
             check_car_s += (double) prev_size * 0.02 * check_speed;
 
-            double judgement_distance = PROJECTION_IN_METERS;
+            // ************** fixed here **************
             if ( other_car_lane == lane ) {
               // Other car is in the same lane
-              car_ahead |= check_car_s > car_s && check_car_s - car_s < judgement_distance * 1.5;
-              if ( check_car_s > car_s && check_car_s - car_s < judgement_distance) {
+              car_ahead |= check_car_s > car_s && check_car_s - car_s < JUDGEMENT_DISTANCE;
+              if ( check_car_s > car_s && check_car_s - car_s < JUDGEMENT_DISTANCE * 2) {
+                // Save nearest other cars information
                 if ( target_distance > check_car_s - car_s ) {
+                  // convert mps -> mph
+                  target_speed = check_speed * 2.23;
                   target_distance = check_car_s - car_s;
-                  target_speed = check_speed;
                 }
               }
             } else if ( other_car_lane - lane == -1 ) {
               // Other car is on the left lane
-              car_left |= car_s - judgement_distance * 0.5 < check_car_s && car_s + judgement_distance * 1.5 > check_car_s;
+              car_left |= car_s - JUDGEMENT_DISTANCE < check_car_s && car_s + JUDGEMENT_DISTANCE > check_car_s;
             } else if ( other_car_lane - lane == 1 ) {
               // Other car is on the right lane
-              car_right |= car_s - judgement_distance * 0.5 < check_car_s && car_s + judgement_distance * 1.5 > check_car_s;
+              car_right |= car_s - JUDGEMENT_DISTANCE < check_car_s && car_s + JUDGEMENT_DISTANCE > check_car_s;
             }
+            // ************** ********** **************
           }
 
           // 2. BEHAVIOR: Trigger State Changes Depending If Road Clear of Vehicle Ahead
-          // Wait for completing Lane Change
+
+          // ************** added here **************
           if ( (2.5 < car_d && car_d < 5.5) || (6.5 < car_d && car_d < 9.5) ) {
+            // Wait for completing Lane Change
             car_left = true;
             car_right = true;
           }
+
+          if ( fsm.state() == Follow && target_distance < FOLLOWING_DISTANCE) {
+            // Continue following
+            car_ahead = true;
+          }
+          // ************** ********** **************
 
           if (car_ahead) {
             // Execute 'CarAhead' trigger on state machine
@@ -324,6 +337,8 @@ int main() {
             next_x_vals.push_back(x_point);
             next_y_vals.push_back(y_point);
 
+          // ************** added here **************
+
             //Accelerate to reache MAX_VEL in Normal state
             if ( fsm.state() == Normal ){
               if ( ref_vel + MAX_ACC < MAX_VEL ){
@@ -333,27 +348,20 @@ int main() {
 
             //Follow 
             if ( fsm.state() == Follow ){
-              if ( target_distance < 7) {
+              // 15m ( for avoiding collision )
+              if ( target_distance < 15 ) {
                 ref_vel -= MAX_ACC;
                 if ( ref_vel < 0) {
                   ref_vel = 0;
                 }
-              } else if ( target_distance < 12 ) {
-                ref_vel -= (MAX_ACC / 2);
-                if ( ref_vel < 0 ) {
-                  ref_vel = MAX_ACC;
-                }
-              } else if ( target_distance < 20 ) {
-                ref_vel -= (MAX_ACC / 3);
-                if ( ref_vel < 0 ) {
-                  ref_vel = MAX_ACC;
-                }
-              } else if ( target_speed - ref_vel > -20 && ref_vel + MAX_ACC < MAX_VEL) {
+              // adjust speed to following car's
+              } else if ( target_speed > ref_vel && ref_vel + MAX_ACC < MAX_VEL) {
                 ref_vel += MAX_ACC;
-              } else if ( target_speed - ref_vel < -20 && ref_vel - MAX_ACC > MAX_ACC) {
-                ref_vel -= ((target_speed - ref_vel) * 0.2 / (target_distance + PROJECTION_IN_METERS * 2));
+              } else if ( target_speed < ref_vel && ref_vel - MAX_ACC > MAX_ACC) {
+                ref_vel -= MAX_ACC;
               }
             }
+            // ************** ********** **************
           }
 
           msgJson["next_x"] = next_x_vals;

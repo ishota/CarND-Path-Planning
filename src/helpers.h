@@ -11,7 +11,7 @@ using std::vector;
 
 // Constant values
 const double MAX_VEL = 49.5;
-const double MAX_ACC = .200;
+const double MAX_ACC = .100;
 const double MAX_DEC = .448;
 const int LEFT_LANE = 0;
 const int MIDDLE_LANE = 1;
@@ -23,6 +23,8 @@ const int MIDDLE_LANE_MAX = 8;
 const int RIGHT_LANE_MAX = 12;
 
 const int PROJECTION_IN_METERS = 30;
+const int JUDGEMENT_DISTANCE = 30;
+const int FOLLOWING_DISTANCE = 60;
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
 //   else the empty string "" will be returned.
