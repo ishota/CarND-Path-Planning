@@ -147,7 +147,7 @@ The state consists of four.
 3. ChangeRigth : Change right lane.
 4. ChangeLeft : Change left lane.
 
-State transition conditions and actions after transition are defined as follows. [1]
+State transition conditions and actions after transition are defined as follows.
 The behavior related to horizontal control is used as reference method, but the action related to vertical control is deleted and made in Trajectory Calculation.
 
 ```cpp
