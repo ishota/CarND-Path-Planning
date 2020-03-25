@@ -113,6 +113,30 @@ I controlled the self-driving car with prediction, behavior planning and traject
 Using the result of sensor fution, we observed the position of other car as seen from the ego car.
 Using this result, it is predicted whether the car is driving on the same lane, the right lane, or the left lane.
 
+Here, the speed and distance of the closest ahead car is also calculated.
+I used them for trajectory calculation.
+
+```cpp
+if ( other_car_lane == lane ) {
+  // Other car is in the same lane
+  car_ahead |= check_car_s > car_s && check_car_s - car_s < JUDGEMENT_DISTANCE;
+  if ( check_car_s > car_s && check_car_s - car_s < FOLLOWING_DISTANCE ) {
+    // Save nearest other cars information
+    if ( target_distance > check_car_s - car_s ) {
+      // convert mps -> mph
+      target_speed = check_speed * 2.23;
+      target_distance = check_car_s - car_s;
+    }
+  }
+} else if ( other_car_lane - lane == -1 ) {
+  // Other car is on the left lane
+  car_left |= car_s - JUDGEMENT_DISTANCE < check_car_s && car_s + JUDGEMENT_DISTANCE > check_car_s;
+} else if ( other_car_lane - lane == 1 ) {
+  // Other car is on the right lane
+  car_right |= car_s - JUDGEMENT_DISTANCE < check_car_s && car_s + JUDGEMENT_DISTANCE > check_car_s;
+}
+```
+
 ### Behavior Planning
 
 I used finite state machine.
@@ -147,6 +171,24 @@ fsm.add_transitions({
 }); // end fsm.add_transitions
 ```
 
+I also changed the transition conditions.
+Until car_d of the own car is located in the midle of the lane, it will not transit to the Change state to change one lane at a time.
+
+Once car transitioned to Follw state, car will not transit to Normal state while ahead car in FOLLOWING_DISTANCE.
+
+```cpp
+if ( (2.5 < car_d && car_d < 5.5) || (6.5 < car_d && car_d < 9.5) ) {
+  // Wait for completing Lane Change
+  car_left = true;
+  car_right = true;
+}
+
+if ( fsm.state() == Follow && target_distance < FOLLOWING_DISTANCE) {
+  // Continue following
+  car_ahead = true;
+}
+```
+
 ### Trajectory Calculation
 
 Calculate the spline curve from the car position and map reference points.
@@ -157,8 +199,6 @@ In case of normal state, accelerate to reach maximum speed.
 In case of follow state, adjust speed to ahead cars.
 
 ```cpp
-// ************** added here **************
-
 //Accelerate to reache MAX_VEL in Normal state
 if ( fsm.state() == Normal ){
   if ( ref_vel + MAX_ACC < MAX_VEL ){
@@ -181,7 +221,6 @@ if ( fsm.state() == Follow ){
     ref_vel -= MAX_ACC;
   }
 }
-// ************** ********** **************
 ```
 
 ## result
