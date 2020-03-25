@@ -225,6 +225,7 @@ int main() {
 
           // Create a list of widely spaced (x,y) waypoints, evenly spaced at 30m
           // later interpolate waypoints with spline and fill in more waypoints
+          // Finaly, calculate speed for each waypoints
 
           vector<double> ptsx;
           vector<double> ptsy;
@@ -263,7 +264,7 @@ int main() {
             ptsy.push_back(ref_y);
           }
 
-          // In Frenet add evenly 30m spaced points ahead of the starting reference
+          // In Frenet add evenly PROJECTION_IN_METERS(m) spaced points ahead of the starting reference
           vector<double> next_wp0 = getXY(car_s+PROJECTION_IN_METERS,     (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
           vector<double> next_wp1 = getXY(car_s+(PROJECTION_IN_METERS*2), (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
           vector<double> next_wp2 = getXY(car_s+(PROJECTION_IN_METERS*3), (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
@@ -337,7 +338,7 @@ int main() {
             next_x_vals.push_back(x_point);
             next_y_vals.push_back(y_point);
 
-          // ************** added here **************
+            // ************** added here **************
 
             //Accelerate to reache MAX_VEL in Normal state
             if ( fsm.state() == Normal ){

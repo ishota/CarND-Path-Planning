@@ -124,32 +124,65 @@ The state consists of four.
 4. ChangeLeft : Change left lane.
 
 State transition conditions and actions after transition are defined as follows. [1]
+The behavior related to horizontal control is used as reference method, but the action related to vertical control is deleted and made in Trajectory Calculation.
 
 ```cpp
-  fsm.add_transitions({
-    //  from state        ,to state            ,triggers           ,guard                                                      ,action
-    { States::Normal      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
-    { States::ChangeLeft  ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
-    { States::ChangeLeft  ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{ ref_vel -= MAX_DEC; } },
-    { States::Follow      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
+fsm.add_transitions({
+  //  from state        ,to state            ,triggers           ,guard                                                      ,action
+  { States::Normal      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
+  { States::ChangeLeft  ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+  { States::ChangeLeft  ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{} },
+  { States::Follow      ,States::ChangeLeft  ,Triggers::CarAhead ,[&]{return car_ahead && !car_left && lane > LEFT_LANE;}    ,[&]{lane--;} },
 
-    { States::Normal      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
-    { States::ChangeRight ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
-    { States::ChangeRight ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{ ref_vel -= MAX_DEC; } },
-    { States::Follow      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
+  { States::Normal      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
+  { States::ChangeRight ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+  { States::ChangeRight ,States::Follow      ,Triggers::CarAhead ,[&]{return car_ahead;}                                     ,[&]{} },
+  { States::Follow      ,States::ChangeRight ,Triggers::CarAhead ,[&]{return car_ahead && !car_right && lane != RIGHT_LANE;} ,[&]{lane++;} },
 
-    { States::Normal      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{ref_vel -= MAX_DEC;} },
-    { States::Follow      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{ref_vel -= MAX_DEC;} },
-    { States::Follow      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{ref_vel += MAX_ACC;} },
-    { States::Normal      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{ if (ref_vel < MAX_VEL) { ref_vel += MAX_ACC; }} },
+  { States::Normal      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{} },
+  { States::Follow      ,States::Follow      ,Triggers::CarAhead ,[&]{return true;}                                          ,[&]{} },
+  { States::Follow      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
+  { States::Normal      ,States::Normal      ,Triggers::Clear    ,[&]{return !car_ahead;}                                    ,[&]{} },
 
-  }); // end fsm.add_transitions
+}); // end fsm.add_transitions
 ```
 
 ### Trajectory Calculation
 
 Calculate the spline curve from the car position and map reference points.
 Then, the speed at each point is calculated to satisfy all constraints.
+
+I found the speed for each waypoints in the following code.
+In case of normal state, accelerate to reach maximum speed.
+In case of follow state, adjust speed to ahead cars.
+
+```cpp
+// ************** added here **************
+
+//Accelerate to reache MAX_VEL in Normal state
+if ( fsm.state() == Normal ){
+  if ( ref_vel + MAX_ACC < MAX_VEL ){
+    ref_vel += MAX_ACC;
+  }
+}
+
+//Follow 
+if ( fsm.state() == Follow ){
+  // 15m ( for avoiding collision )
+  if ( target_distance < 15 ) {
+    ref_vel -= MAX_ACC;
+    if ( ref_vel < 0) {
+      ref_vel = 0;
+    }
+  // adjust speed to following car's
+  } else if ( target_speed > ref_vel && ref_vel + MAX_ACC < MAX_VEL) {
+    ref_vel += MAX_ACC;
+  } else if ( target_speed < ref_vel && ref_vel - MAX_ACC > MAX_ACC) {
+    ref_vel -= MAX_ACC;
+  }
+}
+// ************** ********** **************
+```
 
 ## result
 
@@ -159,8 +192,8 @@ Then, the speed at each point is calculated to satisfy all constraints.
 ### result of fantastic mode
 ![alt text][fantastic]
 
-
 ## reference
 
-I refered finite state machine implements.  
+I refered finite state machine implements, spline calculation and lateral control.
+I fixed and added vertical control. 
 [1] https://github.com/mkoehnke/CarND-Path-Planning-Project
