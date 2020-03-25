@@ -179,7 +179,7 @@ int main() {
             if ( other_car_lane == lane ) {
               // Other car is in the same lane
               car_ahead |= check_car_s > car_s && check_car_s - car_s < JUDGEMENT_DISTANCE;
-              if ( check_car_s > car_s && check_car_s - car_s < JUDGEMENT_DISTANCE * 2) {
+              if ( check_car_s > car_s && check_car_s - car_s < FOLLOWING_DISTANCE ) {
                 // Save nearest other cars information
                 if ( target_distance > check_car_s - car_s ) {
                   // convert mps -> mph
